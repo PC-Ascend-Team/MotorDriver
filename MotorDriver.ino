@@ -1,131 +1,115 @@
 //Code created by Jake Denison
-//Version 2.5
+//Version 4.0
 //PC NASA ASCEND TEAM
-//##########################################################
+///////////////////////////////////////////
 
 #include <Wire.h>
 
 //Define all the pins for the motors
-int fwdPin = 11; //foward pin (duh)
-int revPin = 10; //reverse pin (duh)
-int motor1Pin = 3; //first motor
-int motor2Pin = 4; //second motor
-int motor3Pin = 5; //third motor
-int motor4Pin = 6; //fourth motor
-int motor5Pin = 7; //fifth motor
-int motor6Pin = 8; //sixth motor
-int motor7Pin = 9; //seventh motor
-int motor8Pin = 10; //eighth motor
-int motor9Pin = 12; //nineth motor
-int motor10Pin = 13; //tenth motor
-int driveTime = 10000; //motor run time
-int sampCount = 0; //amount of samples collected
+int fwdPin = 11; //foward pin
+int revPin = 10; //reverse pin
+int motor1Pin = 2; //first motor
+int motor2Pin = 3; //second motor
+int motor3Pin = 4; //third motor
+int motor4Pin = 5; //fourth motor
+int motor5Pin = 6; //fifth motor
 int i;
 int motorSelect;
-char sCode = '\0';
-boolean sampled = true; // because we don't want to sample off the bat
+boolean sampled0 = true; // because we don't want to sample off the bat
+boolean sampled1 = true;
+boolean sampled2 = true;
+boolean sampled3 = true;
+boolean sampled4 = true;
+int state = -1;
+int driver = 12;
+int done = 13;
+boolean started = false;
 
 void driveMotor(int motorNum); // forward declaration, for compiler
-    
+
+///////////////////////////////////////////
+
 void setup(){
   
 //set output pins
-  for (int i = 3; i < 14; i++ ){// set pins 3 - 13 to output
+  for (int i = 3; i < 8; i++ ){ // set pins 3 - 7 to output for each motor enable
     pinMode(i, OUTPUT);
   }  
   
-  pinMode(fwdPin, OUTPUT);
+  pinMode(fwdPin, OUTPUT); 
   pinMode(revPin, OUTPUT);
-
-  Wire.begin(9);
-  Wire.onReceive(receiveEvent);
-  Wire.onRequest(requestEvent);
+  pinMode(done, OUTPUT);
+  digitalWrite(done, LOW);
+  pinMode(driver, INPUT);
 }
-
+///////////////////////////////////////////////////////
 
 void loop() {
-  switch (sCode){
-    case '0':
-      if(!sampled)
+  if(digitalRead(driver) == HIGH && !started) {
+    state = 0;
+    started = true;
+  }
+  switch (state){
+    case 0:
+      if(!sampled0)
         driveMotor (motor1Pin);
+      if(digitalRead(driver) == LOW)
+        state++;
       break;
-    case '1':
-      if(!sampled)
+    case 1:
+      if(!sampled1)
         driveMotor (motor2Pin);
+      if(digitalRead(driver) == HIGH)
+        state++;  
       break;
-    case '2':
-      if(!sampled)
+    case 2:
+      if(!sampled2)
         driveMotor (motor3Pin);
+      if(digitalRead(driver) == LOW)
+        state++;  
       break;
-    case '3':
-      if(!sampled)
+    case 3:
+      if(!sampled3)
         driveMotor (motor4Pin);
+      if(digitalRead(driver) == HIGH)
+        state++;  
       break;
-    case '4':
-      if(!sampled)
+    case 4:
+      if(!sampled4)
         driveMotor (motor5Pin);
-      break;
-    case '5':
-      if(!sampled)
-        driveMotor (motor6Pin);
-      break;
-    case '6':
-      if(!sampled)
-        driveMotor (motor7Pin);
-      break;
-    case '7':
-      if(!sampled)
-        driveMotor (motor8Pin);
-      break;
-    case '8':
-      if(!sampled)
-        driveMotor (motor9Pin);
-      break;
-    case '9':
-      if(!sampled)
-        driveMotor (motor10Pin);
+      if(digitalRead(driver) == LOW)
+        state++;  
       break;
     default:
       break;
   }
-
 }
-
-
-
+///////////////////////////////////////////////////
 void driveMotor(int motorNum){
-  sampled = true;
-  int revDel(5000); //drive times
-  int fwdDel(10000); 
-  digitalWrite(motorNum, HIGH); //enable selected motor
-  digitalWrite(fwdPin, LOW); //drives motor in reverse to clear out stagnant air before collecting sample
-  digitalWrite(revPin, HIGH);
-  delay(revDel);
-  digitalWrite(revPin, LOW); //airway clear completed
-
+  switch(motorNum) {
+    case 2:
+      sampled0 = true;
+      break;
+    case 3:
+      sampled1 = true;
+      break;
+    case 4:
+      sampled2 = true;
+      break;
+    case 5:
+      sampled3 = true;
+      break;
+    case 6:
+      sampled4 = true;
+      break;        
+  }
+  digitalWrite(done, LOW);
+  int fwdDel(120000); 
+  digitalWrite(motorNum, HIGH); //enable first selected motor
   digitalWrite(fwdPin, HIGH); //begin sample collection
   digitalWrite(revPin, LOW); 
   delay(fwdDel); //sample collection completed
-
   digitalWrite(fwdPin, LOW);
   digitalWrite(revPin, LOW); //shutdown
+  digitalWrite(done, HIGH);
 }
-
-/*
- * recieveEvent reads bytes sent from the master controller, appends 
- * it to the message string and then marks a message recieved if it
- * is the last message
- */
-void receiveEvent(int nBytes) {
-  sCode = Wire.read();
-  sampled = false;
-}
-
-/*
- * requestEvent sends the sCode back to the master controller
- */
-void requestEvent() {
-  Wire.write(sCode);
-  Wire.write(sampled);
-}
-
